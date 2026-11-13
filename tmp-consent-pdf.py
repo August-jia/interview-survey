@@ -65,11 +65,10 @@ story.append(Paragraph(
     'Your participation is entirely voluntary. You may stop and withdraw from this study at any '
     'time, and you may skip any question you prefer not to answer. Withdrawal will not result in '
     'any penalty or loss of benefits to you. If you have any questions about this study, please '
-    'feel free to contact the researchers. For your participation in this study, you will receive '
-    'a compensation of 100 RMB.', body_s))
+    'feel free to contact the researchers.', body_s))
 story.append(Paragraph(
     '您的参与完全自愿。您可以随时中止并退出本研究，也可以跳过任何您不愿回答的题目，退出不会带来任何不利影响。'
-    '如对本研究有任何疑问，请随时联系研究人员。参与本研究您将获得 100 元人民币的报酬。', cn_s))
+    '如对本研究有任何疑问，请随时联系研究人员。', cn_s))
 
 story.append(Paragraph('Consent', h_s))
 story.append(Paragraph('同意声明', hcn_s))
@@ -81,12 +80,13 @@ story.append(Paragraph(
 story.append(Paragraph('Signature 签名: _____________________________', sign_s))
 story.append(Paragraph('Date 日期: _____________________________', sign_s))
 
-story.append(Paragraph('Confirmation of Receiving Compensation', h_s))
-story.append(Paragraph('报酬领取确认', hcn_s))
+story.append(Paragraph('Compensation Notice', h_s))
+story.append(Paragraph('报酬领取须知', hcn_s))
 story.append(Paragraph(
-    'I confirm that I have received the compensation of 100 RMB for participating in this study.', plain_s))
+    'For your participation in this study, you will receive a compensation, which will be issued '
+    'within one month after the experiment is completed.', plain_s))
 story.append(Paragraph(
-    '我确认已收到参与本研究的 100 元人民币报酬。', cn_s))
+    '参与本研究您将获得相应报酬，报酬将于实验结束后一个月内发放，请知悉。', cn_s))
 story.append(Paragraph('Signature 签名: _____________________________', sign_s))
 story.append(Paragraph('Date 日期: _____________________________', sign_s))
 

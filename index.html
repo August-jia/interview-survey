@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>艺术三维场景视频对比 · 用户问卷</title>
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --card2:#f2f3f8;
+    --accent:#6c5ce7;
+    --accent2:#0eaf9d;
+    --text:#2a2d3a;
+    --muted:#8a8fa3;
+    --line:#e4e6ef;
+    --good:#0eaf9d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:linear-gradient(160deg,#f6f7fb 0%,#eef0f9 55%,#f4f0fc 100%);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;flex-direction:column;
+  }
+  header{
+    position:sticky;top:0;z-index:10;
+    background:rgba(246,247,251,.88);
+    backdrop-filter:blur(10px);
+    padding:14px 18px 10px;
+  }
+  .progress-track{height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+  .progress-bar{height:100%;width:25%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .4s ease}
+  .step-label{font-size:12px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between}
+  main{flex:1;padding:20px 18px 110px;max-width:560px;width:100%;margin:0 auto}
+  .page{display:none;animation:fadeIn .35s ease}
+  .page.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  h1{font-size:22px;line-height:1.4;margin-bottom:10px}
+  h2{font-size:18px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:14px;line-height:1.6}
+  .badge{display:inline-block;font-size:11px;color:var(--accent2);border:1px solid rgba(14,175,157,.4);border-radius:20px;padding:3px 10px;margin-bottom:12px}
+  .tip{background:rgba(108,92,231,.08);border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--muted);line-height:1.6;margin:14px 0}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .q-title{font-size:15px;font-weight:600;margin-bottom:12px;line-height:1.5}
+
+  .scene-head{display:flex;align-items:center;gap:10px;margin:22px 0 10px}
+  .scene-head .s-badge{background:var(--accent2);color:#fff;font-size:13px;font-weight:700;padding:5px 14px;border-radius:16px}
+  .scene-head .s-name{font-size:15px;font-weight:700}
+  .scene-head .s-hint{font-size:12px;color:var(--muted)}
+
+  /* 原图+视频并排 */
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+  .pair .vcard{border:none;border-radius:10px}
+  .pair .vcard video{aspect-ratio:1/1;border-radius:10px}
+  .pair img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block;background:var(--card2)}
+  .pair-cap{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:var(--muted);text-align:center;margin-bottom:6px}
+  .vcard{background:var(--card2);border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative}
+  .vcard video{width:100%;display:block;aspect-ratio:1/1;object-fit:cover;background:#111}
+  .vtag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:700;
+    padding:3px 10px;border-radius:14px;z-index:2}
+  .v-fallback{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;padding:8px}
+
+  /* 评分卡 */
+  .metric-row{margin-top:12px}
+  .metric-row .m-name{font-size:13.5px;font-weight:600;line-height:1.45}
+  .metric-row .m-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px}
+  .likert{display:flex;gap:6px;margin-top:8px}
+  .likert button{flex:1;max-width:52px;aspect-ratio:1/1;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;transition:all .2s}
+  .likert button.sel{background:linear-gradient(135deg,var(--accent),#9b7cff);border-color:var(--accent);color:#fff;box-shadow:0 3px 12px rgba(108,92,231,.3)}
+  .likert-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px}
+
+  /* 选项 chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:9px 14px;border-radius:22px;border:1px solid var(--line);background:var(--card2);font-size:14px;color:var(--muted);cursor:pointer;transition:all .2s}
+  .chip.sel{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+  textarea{width:100%;min-height:88px;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:14px;padding:12px;resize:vertical;font-family:inherit;line-height:1.6;margin-top:10px}
+  textarea:focus{outline:none;border-color:var(--accent)}
+
+  footer{position:fixed;bottom:0;left:0;right:0;padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,rgba(246,247,251,.98),rgba(246,247,251,.9) 70%,transparent);}
+  .btn{width:100%;max-width:560px;display:block;margin:0 auto;padding:15px;border:none;border-radius:14px;
+    font-size:16px;font-weight:700;color:#fff;cursor:pointer;
+    background:linear-gradient(90deg,var(--accent),#9b6cff);transition:transform .15s,opacity .2s}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:600;margin-bottom:10px}
+  .save-status{font-size:13px;text-align:center;margin-top:10px;color:var(--good);white-space:normal}
+
+  .done-icon{width:72px;height:72px;border-radius:50%;background:rgba(14,175,157,.12);border:2px solid var(--good);
+    display:flex;align-items:center;justify-content:center;font-size:34px;margin:20px auto 16px;color:var(--good)}
+  .summary{font-size:13px;line-height:1.8;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:14px;margin-top:14px;word-break:break-all}
+  .summary b{color:var(--text)}
+</style>
+</head>
+<body>
+<script src="cloudbase.bundle.js"></script>
+
+<header>
+  <div class="progress-track"><div class="progress-bar" id="bar"></div></div>
+  <div class="step-label"><span id="stepTxt">第 1 / 4 部分</span><span id="timeHint">约 10–15 分钟</span></div>
+</header>
+
+<main>
+  <!-- P1 欢迎 + 背景 -->
+  <section class="page active" id="p1">
+    <span class="badge">半结构化问卷</span>
+    <h1>艺术图像 → 三维场景<br>视频对比评价</h1>
+    <p class="sub">感谢您填写本问卷！您被随机分配到一组问卷，包含 <b id="sceneCount">8</b> 个场景；每个场景提供 1 幅输入原画和由 6 种不同方法生成的 6 段视频（A–F）。</p>
+    <div class="tip">
+      对每个场景的每段视频，按四项指标打 1–5 分：<b>① 原画内容与构图忠实度</b>、<b>② 风格忠实度</b>、<b>③ 空间层次可信度</b>、<b>④ 总体视觉美感</b>；每个场景全部打完后，选出该场景中您最想要的视频。答案无对错之分，可随时回退修改。
+    </div>
+    <div class="card">
+      <div class="q-title">1. 您使用三维软件（如 Blender / SketchUp / 3D 建模工具）或 AI 绘画工具的经验</div>
+      <div class="chips" data-q="exp">
+        <div class="chip">从没用过</div><div class="chip">偶尔使用</div><div class="chip">经常使用</div><div class="chip">专业 / 从业者</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-title">2. 您对艺术鉴赏（绘画、构图、色彩等）的熟悉程度</div>
+      <div class="chips" data-q="art">
+        <div class="chip">完全不了解</div><div class="chip">有一些兴趣</div><div class="chip">系统学习过</div><div class="chip">艺术专业背景</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 每场景一页（JS 在此处前插入 8 个页面） -->
+
+  <!-- P3 追问 -->
+  <section class="page" id="p3">
+    <span class="badge">Part 2 · 追问</span>
+    <h2>最后两个问题</h2>
+    <div class="card">
+      <div class="q-title">观看过程中，您发现<b>最明显的问题或不满意之处</b>是什么？（可针对某条视频）</div>
+      <textarea data-q="problem" placeholder="例如：物体悬浮、纹理模糊、丢失了原画的某个元素……"></textarea>
+    </div>
+    <div class="card">
+      <div class="q-title">如果这套方法继续优化，您<b>最希望改进</b>的一件事是什么？</div>
+      <textarea data-q="improve" placeholder="例如：更准的构图还原、更流畅的旋转展示……"></textarea>
+    </div>
+  </section>
+
+  <!-- P4 完成 -->
+  <section class="page" id="p4">
+    <div class="done-icon">✓</div>
+    <h2 style="text-align:center">问卷已完成，感谢您的填写！</h2>
+    <p class="sub" style="text-align:center">请点击下方按钮复制您的回答，并发送给问卷组织者。</p>
+    <div class="summary" id="summary"></div>
+    <div style="margin-top:16px"><button class="btn" id="copyBtn" style="width:100%">📋 复制回答</button></div>
+    <div class="save-status" id="saveStatus"></div>
+  </section>
+</main>
+
+<footer id="footer">
+  <button class="btn ghost" id="backBtn" style="display:none">← 上一部分</button>
+  <button class="btn" id="nextBtn">开始 →</button>
+</footer>
+
+<script>
+/* ===== 配置 ===== */
+const GROUP_COUNT = 3;        // 3 份不同问卷
+const SCENES_PER_PERSON = 8;  // 每人 8 个场景
+const TOTAL_SCENES = GROUP_COUNT * SCENES_PER_PERSON; // 共 24 个场景
+const SCENE_IDS = Array.from({length:TOTAL_SCENES},(_,i)=>'s'+String(i+1).padStart(2,'0'));
+const VIDEO_IDS = ['A','B','C','D','E','F'];
+const METRICS = [
+  {k:'m1', name:'① 原画内容与构图忠实度', desc:'是否完整保留原画的物体、布局与构图关系'},
+  {k:'m2', name:'② 风格忠实度', desc:'材质、色彩与氛围是否延续原画的艺术风格'},
+  {k:'m3', name:'③ 空间层次可信度', desc:'前后景深、透视与比例是否符合真实空间逻辑'},
+  {k:'m4', name:'④ 总体视觉美感', desc:'场景本身是否好看、有艺术感染力'},
+];
+
+/* 随机分配一组问卷（同一浏览器刷新保持不变） */
+let myGroup = Number(localStorage.getItem('art3d_group'));
+if(!myGroup || myGroup<1 || myGroup>GROUP_COUNT){
+  myGroup = Math.floor(Math.random()*GROUP_COUNT)+1;
+  localStorage.setItem('art3d_group', String(myGroup));
+}
+const myScenes = SCENE_IDS.slice((myGroup-1)*SCENES_PER_PERSON, myGroup*SCENES_PER_PERSON);
+const sceneImg = sid=>`scenes/${sid}/input.jpg`;
+const sceneVideo = (sid,v)=>`scenes/${sid}/${v}.mp4`;
+
+const state = {group:'G'+myGroup};
+let pages = ['p1','p3','p4']; // 场景页稍后插入
+let cur = 0;
+document.getElementById('sceneCount').textContent=SCENES_PER_PERSON;
+document.getElementById('timeHint').textContent='已分配第 '+myGroup+' 组问卷';
+
+/* ---------- 每个场景一页：6 张评分卡 ---------- */
+const mainEl=document.querySelector('main');
+const p3El=document.getElementById('p3');
+myScenes.forEach((sid,idx)=>{
+  const sec=document.createElement('section');
+  sec.className='page'; sec.id='p2_'+sid;
+  let cards='';
+  VIDEO_IDS.forEach(vid=>{
+    let rows='';
+    METRICS.forEach(m=>{
+      rows+=`<div class="metric-row">
+        <div class="m-name">${m.name}</div>
+        <div class="m-desc">${m.desc}</div>
+        <div class="likert" data-q="r_${sid}_${vid}_${m.k}"></div>
+      </div>`;
+    });
+    cards+=`<div class="card">
+      <div class="pair">
+        <img src="${sceneImg(sid)}" alt="输入原画"
+          onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${sceneImg(sid).replace('.jpg','.png')}'}else{this.style.display='none'}">
+        <div class="vcard"><span class="vtag">视频 ${vid}</span>
+          <video src="${sceneVideo(sid,vid)}" loop muted playsinline preload="metadata"
+            onerror="this.outerHTML='<div class=\\'v-fallback\\'>未找到视频 (${sid}/${vid}.mp4)</div>'"></video>
+        </div>
+      </div>
+      <div class="pair-cap"><span>输入原画（input）</span><span>该方法生成结果</span></div>
+      ${rows}
+    </div>`;
+  });
+  cards+=`<div class="card" style="border:1px dashed var(--accent)">
+    <div class="q-title">综合所有方面，您<b>最想要哪条视频</b>的结果？</div>
+    <div class="chips" data-q="best_${sid}"></div>
+  </div>`;
+  sec.innerHTML=`
+    <span class="badge">逐段打分 · 场景 ${idx+1} / ${SCENES_PER_PERSON}</span>
+    <h2>场景 ${sid}</h2>
+    <p class="sub">左侧为输入原画、右侧为该方法的视频。请点开视频观看（可反复播放），按 4 项指标打 1–5 分（1=非常差，5=非常好），最后在页面底部选出该场景最好的视频。</p>
+    ${cards}`;
+  mainEl.insertBefore(sec, p3El);
+});
+pages=['p1',...myScenes.map(sid=>'p2_'+sid),'p3','p4'];
+
+/* ---------- Likert 1-5 ---------- */
+document.querySelectorAll('.likert').forEach(box=>{
+  for(let i=1;i<=5;i++){
+    const b=document.createElement('button');
+    b.textContent=i;
+    b.onclick=()=>{
+      box.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel');
+      state[box.dataset.q]=i;
+    };
+    box.appendChild(b);
+  }
+});
+
+/* ---------- 场景选择 chips（A–F）---------- */
+document.querySelectorAll('.chips').forEach(group=>{
+  const q=group.dataset.q;
+  if(!q) return;
+  VIDEO_IDS.forEach(vid=>{
+    const chip=document.createElement('div');
+    chip.className='chip'; chip.textContent='视频 '+vid;
+    chip.onclick=()=>{
+      group.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      chip.classList.add('sel');
+      state[q]=vid;
+    };
+    group.appendChild(chip);
+  });
+});
+
+/* ---------- 背景 chips ---------- */
+document.querySelectorAll('.chips[data-q="exp"],.chips[data-q="art"]').forEach(group=>{
+  group.querySelectorAll('.chip').forEach(chip=>{
+    chip.onclick=()=>{
+      group.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      chip.classList.add('sel');
+      state[group.dataset.q]=chip.textContent;
+    };
+  });
+});
+document.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{state[t.dataset.q]=t.value.trim();});
+
+/* ---------- 流程（不强制答完）---------- */
+const last=()=>pages.length-1;
+function updateBtn(){
+  const btn=document.getElementById('nextBtn');
+  btn.textContent=cur===0?'开始 →':cur===last()-1?'提交问卷':'下一个场景 →';
+}
+function render(){
+  pages.forEach((p,i)=>document.getElementById(p).classList.toggle('active',i===cur));
+  document.getElementById('bar').style.width=((cur+1)/pages.length*100)+'%';
+  const p=pages[cur];
+  let label='完成';
+  if(p==='p1') label='第 1 / '+pages.length+' 部分 · 参与者信息';
+  else if(p.startsWith('p2_')) label='场景 '+(myScenes.indexOf(p.slice(3))+1)+' / '+SCENES_PER_PERSON+' · '+(p.slice(3));
+  else if(p==='p3') label='第 '+(pages.length-1)+' / '+pages.length+' 部分 · 开放追问';
+  document.getElementById('stepTxt').textContent=label;
+  document.getElementById('footer').style.display=cur===last()?'none':'block';
+  document.getElementById('backBtn').style.display=(cur>0&&cur<last())?'block':'none';
+  window.scrollTo({top:0});
+  updateBtn();
+}
+document.getElementById('backBtn').onclick=()=>{ if(cur>0){ cur--; render(); } };
+
+/* ---------- 提交到腾讯云开发（云数据库） ---------- */
+const ENV_ID='progressive-barnacle-d9a8b49a72f';
+function getTcb(){
+  return Promise.resolve(window.cloudbase.init({env:ENV_ID}));
+}
+let submitted=false;
+async function sendToServer(){
+  if(submitted) return;
+  submitted=true;
+  const status=document.getElementById('saveStatus');
+  try{
+    const app=await getTcb();
+    await app.auth({persistence:'local'}).anonymousAuthProvider().signIn();
+    await app.database().collection('responses').add({
+      ...state,
+      scenes:myScenes,
+      submittedAt:new Date().toISOString()
+    });
+    status.textContent='✓ 回答已提交到云端，组织者已收到';
+  }catch(e){
+    submitted=false;
+    status.style.color='#e08a00';
+    status.textContent='⚠ 云端暂不可用：'+(e.message||e)+'（截图发给组织者）';
+  }
+}
+document.getElementById('nextBtn').onclick=()=>{
+  if(cur===last()-1){
+    const rows=[
+      ['问卷分组',state.group],['软件/AI经验',state.exp],['艺术背景',state.art],
+      ...myScenes.map((sid,i)=>[`场景${i+1}（${sid}）最想`,state['best_'+sid]?'视频 '+state['best_'+sid]:'-']),
+      ['主要问题',state.problem],['改进期望',state.improve]
+    ].filter(([k,v])=>v!==undefined&&String(v).length>0);
+    document.getElementById('summary').innerHTML=rows.map(([k,v])=>`<b>${k}：</b>${v}`).join('<br>');
+    localStorage.setItem('art3d_interview',JSON.stringify(state));
+    sendToServer();
+  }
+  cur++; render();
+};
+document.getElementById('copyBtn').onclick=()=>{
+  const text=document.getElementById('summary').innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    document.getElementById('copyBtn').textContent='✓ 已复制';
+    setTimeout(()=>document.getElementById('copyBtn').textContent='📋 复制回答',1500);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);
+    ta.select();document.execCommand('copy');ta.remove();
+    document.getElementById('copyBtn').textContent='✓ 已复制';
+    setTimeout(()=>document.getElementById('copyBtn').textContent='📋 复制回答',1500);
+  });
+};
+render();
+</script>
+</body>
+</html>

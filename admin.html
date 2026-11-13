@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问卷后台 · 结果查看</title>
+<style>
+  :root{--card:#ffffff;--card2:#f2f3f8;--accent:#6c5ce7;--accent2:#0eaf9d;--text:#2a2d3a;--muted:#8a8fa3;--line:#e4e6ef}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f6f7fb;color:var(--text);padding:24px 16px}
+  .wrap{max-width:860px;margin:0 auto}
+  h1{font-size:20px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .login{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;gap:10px;flex-wrap:wrap}
+  .login input{flex:1;min-width:200px;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--text);font-size:14px}
+  .login button{padding:12px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 18px}
+  .stat b{font-size:22px;color:var(--accent2)}
+  .stat span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .toolbar button{padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--text);font-size:13px;cursor:pointer}
+  table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden;font-size:13px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--accent2);font-size:12px;background:var(--card2)}
+  tr:hover td{background:rgba(108,92,231,.06)}
+  .video-col{color:var(--accent2);font-weight:700}
+  .open-col{max-width:260px;white-space:normal;line-height:1.5}
+  #err{color:#d64545;font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<script src="cloudbase.bundle.js"></script>
+<div class="wrap">
+  <h1>问卷后台</h1>
+  <div class="sub">艺术三维场景视频对比 · 问卷数据收集结果</div>
+
+  <div class="login" id="loginBox">
+    <input type="password" id="keyInput" placeholder="请输入管理密码" onkeydown="if(event.key==='Enter')load()">
+    <button onclick="load()">查看结果</button>
+  </div>
+  <div id="err"></div>
+
+  <div id="resultBox" style="display:none">
+    <div class="stats">
+      <div class="stat"><b id="totalNum">0</b><span>回收问卷总数</span></div>
+      <div class="stat"><b id="oursRate">-</b><span>「我们的方法」综合偏好第一占比</span></div>
+    </div>
+    <div id="avgBox" style="overflow-x:auto;margin-bottom:16px"></div>
+    <div class="toolbar">
+      <button onclick="exportCSV()">⬇ 导出 CSV</button>
+      <button onclick="load()">↻ 刷新</button>
+    </div>
+    <div style="overflow-x:auto"><table id="tbl"></table></div>
+  </div>
+</div>
+
+<script>
+/* ！！！请把匿名编号与真实方法的对应关系写在这里，用于统计“我们的方法”占比 */
+const METHOD_MAP = { A:'待填写', B:'待填写', C:'待填写', D:'待填写', E:'待填写', F:'待填写' };
+const OURS_LABEL = 'Ours'; // 我们的方法在 METHOD_MAP 中的名称
+
+const ENV_ID='progressive-barnacle-d9a8b49a72f';
+function getTcb(){
+  return Promise.resolve(window.cloudbase.init({env:ENV_ID}));
+}
+
+let DATA=null;
+async function load(){
+  const key=document.getElementById('keyInput').value.trim();
+  if(!key) return;
+  try{
+    const app=await getTcb();
+    await app.auth({persistence:'local'}).anonymousAuthProvider().signIn();
+    const db=app.database();
+    // 分页拉取全部回答
+    let all=[],skip=0;
+    while(true){
+      const res=await db.collection('responses').orderBy('submittedAt','desc').skip(skip).limit(100).get();
+      const docs=res.data||[];
+      all=all.concat(docs);
+      if(docs.length<100) break;
+      skip+=100;
+    }
+    DATA=all;
+    document.getElementById('err').textContent='';
+    document.getElementById('loginBox').style.display='none';
+    document.getElementById('resultBox').style.display='block';
+    render(all);
+  }catch(e){
+    document.getElementById('err').textContent='加载失败：'+(e.message||e)+'（请确认控制台已开启匿名登录、responses 集合权限已设置）';
+  }
+}
+const VIDS=['A','B','C','D','E','F'];
+const METRICS=[['m1','①构图'],['m2','②风格'],['m3','③空间'],['m4','④美感']];
+function scoreOf(a,sid,v,m){const s=a['r_'+sid+'_'+v+'_'+m];return s===undefined||s===''?null:Number(s);}
+function allScenes(list){
+  const set=new Set();
+  list.forEach(a=>(a.scenes||[]).forEach(s=>set.add(s)));
+  Object.keys(list.reduce((o,a)=>{Object.keys(a).forEach(k=>{const m=/^best_(s\d+)$/.exec(k);if(m)set.add(m[1]);});return o;},{}));
+  return [...set].sort();
+}
+function render(list){
+  document.getElementById('totalNum').textContent=list.length;
+  const scenes=allScenes(list);
+  /* Ours 排第一占比（按每个场景的整体选择计） */
+  let n1=0,nT=0;
+  list.forEach(a=>scenes.forEach(s=>{ if(a['best_'+s]){ nT++; if(METHOD_MAP[a['best_'+s]]===OURS_LABEL) n1++; } }));
+  document.getElementById('oursRate').textContent=nT?Math.round(n1/nT*100)+'%':'-';
+
+  /* 按场景分组的平均分表 */
+  let avgHtml='';
+  scenes.forEach(sid=>{
+    const grp=(list.find(a=>(a.scenes||[]).includes(sid))||{}).group||'?';
+    avgHtml+=`<div style="font-size:13px;font-weight:700;margin:10px 0 6px">${sid} <span style="color:var(--muted);font-weight:400">（出现在 ${grp} 组问卷）</span></div>`;
+    avgHtml+='<table><tr><th>指标 \\ 视频</th>'+VIDS.map(v=>`<th>视频 ${v}</th>`).join('')+'<th>最高</th></tr>';
+    METRICS.forEach(([m,name])=>{
+      const means=VIDS.map(v=>{
+        const ss=list.map(a=>scoreOf(a,sid,v,m)).filter(x=>x!==null);
+        return ss.length?ss.reduce((x,y)=>x+y,0)/ss.length:null;
+      });
+      const max=Math.max(...means.map(x=>x===null?-1:x));
+      avgHtml+=`<tr><th>${name}</th>`+means.map(mean=>`<td class="${mean!==null&&mean===max?'video-col':''}">${mean===null?'-':mean.toFixed(2)}</td>`).join('')+
+        `<td>${means.findIndex(x=>x===max)>=0?VIDS[means.findIndex(x=>x===max)]:'-'}</td></tr>`;
+    });
+    avgHtml+='</table>';
+  });
+  document.getElementById('avgBox').innerHTML=avgHtml||'<div style="color:var(--muted);font-size:13px">暂无数据</div>';
+
+  const cols=[
+    ['提交时间',a=>(a.submittedAt||'').replace('T',' ').slice(0,19)],
+    ['组',a=>a.group||'-'],['经验',a=>a.exp||''],['艺术背景',a=>a.art||''],
+    ...scenes.map(s=>[s,a=>'视频 '+(a['best_'+s]||'-')]),
+    ['主要问题',a=>a.problem||'-'],['改进期望',a=>a.improve||'-'],
+  ];
+  const tbl=document.getElementById('tbl');
+  tbl.innerHTML='<tr>'+cols.map(c=>`<th>${c[0]}</th>`).join('')+'</tr>'+
+    list.map(a=>'<tr>'+cols.map(c=>`<td class="${/^s\d+$/.test(c[0])?'video-col':'open-col'}">${escapeHtml(String(c[1](a)))}</td>`).join('')+'</tr>').join('');
+}
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function exportCSV(){
+  const scenes=DATA?allScenes(DATA):[];
+  const rows=[['提交时间','分组','软件经验','艺术背景',
+    ...scenes.flatMap(s=>VIDS.flatMap(v=>METRICS.map(([m])=>`${s}_${v}_${m}`)).concat([`${s}_best`])),
+    '主要问题','改进期望']];
+  (DATA||[]).forEach(a=>rows.push([
+    a.submittedAt||'',a.group||'',a.exp||'',a.art||'',
+    ...scenes.flatMap(s=>VIDS.flatMap(v=>METRICS.map(([m])=>scoreOf(a,s,v,m)??'')).concat([a['best_'+s]||''])),
+    a.problem||'',a.improve||''
+  ]));
+  const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='interview-results.csv';a.click();
+}
+</script>
+</body>
+</html>

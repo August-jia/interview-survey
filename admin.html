@@ -30,7 +30,7 @@
 </style>
 </head>
 <body>
-<script src="cloudbase.bundle.js"></script>
+<script src="config.pg.js"></script>
 <div class="wrap">
   <h1>问卷后台</h1>
   <div class="sub">艺术三维场景视频对比 · 问卷数据收集结果</div>
@@ -70,11 +70,14 @@ async function load(){
   const key=document.getElementById('keyInput').value.trim();
   if(!key) return;
   try{
-    const app=await getTcb();
-    await app.auth({persistence:'local'}).signInAnonymously();
-    const {data,error}=await app.rdb().from('responses').select('*');
-    if(error) throw error;
-    const all=(data||[]).map(r=>{
+    const PG=window.SURVEY_PG;
+    if(!PG||!PG.rest||!PG.key) throw new Error('缺少接口配置');
+    const res=await fetch(PG.rest+'/responses?select=id,created_at,data&order=id.desc&limit=2000',{
+      headers:{'Authorization':'Bearer '+PG.key}
+    });
+    if(!res.ok) throw new Error('http '+res.status);
+    const rows=await res.json();
+    const all=(rows||[]).map(r=>{
       const payload=(r.data&&typeof r.data==='object')?r.data:{};
       return {...payload, submittedAt:payload.submittedAt||r.created_at, _id:r.id};
     });
@@ -125,7 +128,7 @@ function render(list){
 
   const cols=[
     ['提交时间',a=>(a.submittedAt||'').replace('T',' ').slice(0,19)],
-    ['组',a=>a.group||'-'],['经验',a=>a.exp||''],['艺术背景',a=>a.art||''],
+    ['组',a=>a.group||'-'],['性别',a=>a.gender||'-'],['年龄',a=>a.age||'-'],['专业',a=>a.major||'-'],['经验',a=>a.exp||''],['艺术背景',a=>a.art||''],
     ...scenes.map(s=>[s,a=>'视频 '+(a['best_'+s]||'-')]),
     ['主要问题',a=>a.problem||'-'],['改进期望',a=>a.improve||'-'],
   ];
@@ -136,11 +139,11 @@ function render(list){
 function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function exportCSV(){
   const scenes=DATA?allScenes(DATA):[];
-  const rows=[['提交时间','分组','软件经验','艺术背景',
+  const rows=[['提交时间','分组','性别','年龄','专业','软件经验','艺术背景',
     ...scenes.flatMap(s=>VIDS.flatMap(v=>METRICS.map(([m])=>`${s}_${v}_${m}`)).concat([`${s}_best`])),
     '主要问题','改进期望']];
   (DATA||[]).forEach(a=>rows.push([
-    a.submittedAt||'',a.group||'',a.exp||'',a.art||'',
+    a.submittedAt||'',a.group||'',a.gender||'',a.age||'',a.major||'',a.exp||'',a.art||'',
     ...scenes.flatMap(s=>VIDS.flatMap(v=>METRICS.map(([m])=>scoreOf(a,s,v,m)??'')).concat([a['best_'+s]||''])),
     a.problem||'',a.improve||''
   ]));

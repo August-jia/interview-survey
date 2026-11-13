@@ -72,16 +72,12 @@ async function load(){
   try{
     const app=await getTcb();
     await app.auth({persistence:'local'}).signInAnonymously();
-    const db=app.database();
-    // 分页拉取全部回答
-    let all=[],skip=0;
-    while(true){
-      const res=await db.collection('responses').orderBy('submittedAt','desc').skip(skip).limit(100).get();
-      const docs=res.data||[];
-      all=all.concat(docs);
-      if(docs.length<100) break;
-      skip+=100;
-    }
+    const {data,error}=await app.rdb().from('responses').select('*');
+    if(error) throw error;
+    const all=(data||[]).map(r=>{
+      const payload=(r.data&&typeof r.data==='object')?r.data:{};
+      return {...payload, submittedAt:payload.submittedAt||r.created_at, _id:r.id};
+    });
     DATA=all;
     document.getElementById('err').textContent='';
     document.getElementById('loginBox').style.display='none';

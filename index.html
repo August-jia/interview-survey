@@ -326,11 +326,12 @@ async function sendToServer(){
     }
   }
 
-  /* 2) 腾讯云开发云数据库 */
+  /* 2) 腾讯云开发 PostgreSQL（匿名登录 + RLS 放行） */
   try{
     const app=await getTcb();
     await app.auth({persistence:'local'}).signInAnonymously();
-    await app.database().collection('responses').add(payload);
+    const {error}=await app.rdb().from('responses').insert({data:payload});
+    if(error) throw error;
     status.textContent='✓ 回答已提交，组织者已收到';
   }catch(e){
     submitted=false;

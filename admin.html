@@ -71,7 +71,7 @@ async function load(){
   if(!key) return;
   try{
     const app=await getTcb();
-    await app.auth({persistence:'local'}).anonymousAuthProvider().signIn();
+    await app.auth({persistence:'local'}).signInAnonymously();
     const db=app.database();
     // 分页拉取全部回答
     let all=[],skip=0;

@@ -98,6 +98,7 @@
 </style>
 </head>
 <body>
+<script src="config.js"></script>
 <script src="cloudbase.bundle.js"></script>
 
 <header>
@@ -302,23 +303,38 @@ function getTcb(){
   return Promise.resolve(window.cloudbase.init({env:ENV_ID}));
 }
 let submitted=false;
+const API_BASE=(window.SURVEY_API||'').replace(/\/+$/,'');
 async function sendToServer(){
   if(submitted) return;
   submitted=true;
   const status=document.getElementById('saveStatus');
+  const payload={...state,scenes:myScenes,submittedAt:new Date().toISOString()};
+
+  /* 1) 自定义接口（本地 MySQL 后端 / 内网穿透地址） */
+  if(API_BASE){
+    try{
+      const res=await fetch(API_BASE+'/api/submit',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('http '+res.status);
+      status.textContent='✓ 回答已提交，组织者已收到';
+      return;
+    }catch(e){
+      submitted=false;
+    }
+  }
+
+  /* 2) 腾讯云开发云数据库 */
   try{
     const app=await getTcb();
-    await app.auth({persistence:'local'}).anonymousAuthProvider().signIn();
-    await app.database().collection('responses').add({
-      ...state,
-      scenes:myScenes,
-      submittedAt:new Date().toISOString()
-    });
-    status.textContent='✓ 回答已提交到云端，组织者已收到';
+    await app.auth({persistence:'local'}).signInAnonymously();
+    await app.database().collection('responses').add(payload);
+    status.textContent='✓ 回答已提交，组织者已收到';
   }catch(e){
     submitted=false;
-    status.style.color='#e08a00';
-    status.textContent='⚠ 云端暂不可用：'+(e.message||e)+'（截图发给组织者）';
+    status.textContent='';
   }
 }
 document.getElementById('nextBtn').onclick=()=>{

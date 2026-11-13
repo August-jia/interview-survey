@@ -1,9 +1,11 @@
 node_modules/
+cloudfunctions/*/node_modules/
 data/
 package.json
 package-lock.json
 server.js
+server-mysql.js
+schema.sql
 cloudbase.esm.js
-run-count.cmd
 *.log
 .DS_Store
